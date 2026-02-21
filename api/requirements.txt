@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+openai
+elevenlabs
+python-jose[cryptography]
+python-dotenv
+pydantic
+numpy
+sentence-transformers
+faiss-cpu
+PyJWT

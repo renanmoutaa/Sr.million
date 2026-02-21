@@ -23,17 +23,37 @@ SECRET_KEY = "sr-million-secret-key" # In production, use env variable
 ALGORITHM = "HS256"
 
 def load_settings():
-    if not SETTINGS_FILE.exists():
-        return {
+    # File-based defaults (works for local dev)
+    if SETTINGS_FILE.exists():
+        with open(SETTINGS_FILE, 'r') as f:
+            base = json.load(f)
+    else:
+        base = {
             "openai_api_key": "",
             "elevenlabs_api_key": "",
             "elevenlabs_voice_id": "Daniel",
-            "avatar_url": "https://models.readyplayer.me/69961da73781699417e09098.glb",
-            "system_prompt": "Você é um assistente de IA corporativo realista.",
-            "admin_password": "admin"
+            "avatar_url": "/sr.million.glb",
+            "system_prompt": "Você é um assistente de IA corporativo.",
+            "admin_password": "admin",
+            "openai_model": "gpt-4o-mini",
         }
-    with open(SETTINGS_FILE, 'r') as f:
-        return json.load(f)
+    # Environment variables override file values (used in Vercel/production)
+    env_map = {
+        "OPENAI_API_KEY":        "openai_api_key",
+        "ELEVENLABS_API_KEY":    "elevenlabs_api_key",
+        "ELEVENLABS_VOICE_ID":   "elevenlabs_voice_id",
+        "OPENAI_MODEL":          "openai_model",
+        "ADMIN_PASSWORD":        "admin_password",
+        "JWT_SECRET":            "jwt_secret",
+        "SYSTEM_PROMPT":         "system_prompt",
+        "AVATAR_URL":            "avatar_url",
+    }
+    for env_key, setting_key in env_map.items():
+        value = os.environ.get(env_key)
+        if value:
+            base[setting_key] = value
+    return base
+
 
 def save_settings(settings):
     with open(SETTINGS_FILE, 'w') as f:
