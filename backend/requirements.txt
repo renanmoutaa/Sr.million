@@ -1,0 +1,11 @@
+elevenlabs
+openai
+python-dotenv
+pydantic
+PyJWT
+python-multipart
+elevenlabs
+networkx
+chromadb
+tiktoken
+python-multipart

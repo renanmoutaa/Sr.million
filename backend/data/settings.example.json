@@ -1,0 +1,9 @@
+{
+    "openai_api_key": "",
+    "openai_model": "gpt-4o-mini",
+    "elevenlabs_api_key": "",
+    "elevenlabs_voice_id": "",
+    "avatar_url": "/sr.million.glb",
+    "system_prompt": "Você é o Sr. Million...",
+    "admin_password": "admin"
+}
