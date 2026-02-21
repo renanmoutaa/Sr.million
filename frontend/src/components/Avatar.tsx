@@ -19,7 +19,7 @@ const findBone = (nodes: any, patterns: string[]) => {
 
 import { useControls } from 'leva';
 
-const AvatarLogic = ({ scene, nodes, status, currentViseme, morphTargets }: any) => {
+const AvatarLogic = ({ scene, nodes, status, morphTargets }: any) => {
     const group = useRef<THREE.Group>(null);
     const bonesRef = useRef<any>({});
 
@@ -115,7 +115,7 @@ const AvatarLogic = ({ scene, nodes, status, currentViseme, morphTargets }: any)
 };
 
 const GlbAvatar = ({ url, ...props }: any) => {
-    const { scene } = useGLTF(url);
+    const { scene } = useGLTF(url) as any;
     const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
     const { nodes } = useGraph(clone);
     return <AvatarLogic scene={clone} nodes={nodes} {...props} />;
@@ -128,8 +128,8 @@ const FbxAvatar = ({ url, ...props }: any) => {
     return <AvatarLogic scene={clone} nodes={nodes} {...props} />;
 };
 
-export function Avatar(props: any) {
-    const { settings, fetchSettings, currentViseme, status, morphTargets } = useChatStore();
+export function Avatar(props?: any) {
+    const { settings, fetchSettings, currentViseme: _currentViseme, status, morphTargets } = useChatStore();
 
     useEffect(() => {
         if (!settings) fetchSettings();
@@ -139,7 +139,8 @@ export function Avatar(props: any) {
     const isFBX = avatarUrl.toLowerCase().endsWith('.fbx');
 
     if (isFBX) {
-        return <FbxAvatar url={avatarUrl} status={status} currentViseme={currentViseme} morphTargets={morphTargets} />;
+        return <FbxAvatar url={avatarUrl} status={status} morphTargets={morphTargets} {...(props || {})} />;
     }
-    return <GlbAvatar url={avatarUrl} status={status} currentViseme={currentViseme} morphTargets={morphTargets} />;
+    return <GlbAvatar url={avatarUrl} status={status} morphTargets={morphTargets} {...(props || {})} />;
 }
+

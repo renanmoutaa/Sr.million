@@ -49,7 +49,7 @@ export class AvatarController {
         this.applyCustomMorphs(nodes, morphTargets);
     }
 
-    private updateLipSync(delta: number, status: string, nodes: any, bones: any) {
+    private updateLipSync(_delta: number, status: string, nodes: any, bones: any) {
         let targetMouthOpen = 0;
 
         if (status === 'speaking') {
@@ -86,7 +86,7 @@ export class AvatarController {
         }
     }
 
-    private updateHeadMovement(delta: number, elapsedTime: number, bones: any, status: string) {
+    private updateHeadMovement(_delta: number, elapsedTime: number, bones: any, status: string) {
         // Look At Scheduling
         if (elapsedTime > this.nextLookTime) {
             this.targetLook.set(
@@ -118,7 +118,7 @@ export class AvatarController {
         }
     }
 
-    private updateBlink(delta: number, elapsedTime: number, nodes: any) {
+    private updateBlink(_delta: number, elapsedTime: number, nodes: any) {
         if (!this.isBlinking && elapsedTime > this.nextBlinkTime) {
             this.isBlinking = true;
             this.blinkValue = 0; // Start closed (morph 0) - WAIT, blink 1 = closed usually

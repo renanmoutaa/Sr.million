@@ -1,4 +1,4 @@
-import { Environment, ContactShadows } from '@react-three/drei';
+import { ContactShadows } from '@react-three/drei';
 import { Avatar } from './Avatar';
 
 export function Experience() {
