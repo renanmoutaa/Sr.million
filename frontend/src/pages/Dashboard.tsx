@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { Settings, User, MessageSquare, Monitor, Save, LogOut } from 'lucide-react';
 import axios from 'axios';
 
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '/api');
+
 const Dashboard = () => {
     const [activeTab, setActiveTab] = useState('settings');
     const [config, setConfig] = useState<any>(null);
@@ -19,7 +21,7 @@ const Dashboard = () => {
 
     const fetchSettings = async () => {
         try {
-            const res = await axios.get('http://localhost:8000/settings', {
+            const res = await axios.get(`${API_BASE}/settings`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setConfig(res.data);
@@ -33,7 +35,7 @@ const Dashboard = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await axios.post('http://localhost:8000/settings', config, {
+            await axios.post(`${API_BASE}/settings`, config, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             alert('Configurações salvas!');
@@ -114,13 +116,13 @@ const Dashboard = () => {
                                 <InputGroup
                                     label="OpenAI API Key"
                                     value={config.openai_api_key}
-                                    onChange={(v) => setConfig({ ...config, openai_api_key: v })}
+                                    onChange={(v: string) => setConfig({ ...config, openai_api_key: v })}
                                     type="password"
                                 />
                                 <InputGroup
                                     label="ElevenLabs API Key"
                                     value={config.eleven_api_key}
-                                    onChange={(v) => setConfig({ ...config, eleven_api_key: v })}
+                                    onChange={(v: string) => setConfig({ ...config, eleven_api_key: v })}
                                     type="password"
                                 />
                             </SectionCard>
@@ -129,7 +131,7 @@ const Dashboard = () => {
                                 <InputGroup
                                     label="ID da Voz (ElevenLabs)"
                                     value={config.elevenlabs_voice_id}
-                                    onChange={(v) => setConfig({ ...config, elevenlabs_voice_id: v })}
+                                    onChange={(v: string) => setConfig({ ...config, elevenlabs_voice_id: v })}
                                     placeholder="Ex: CstacWqMhJQlnfLPxRG4"
                                 />
                                 <p className="text-xs text-slate-500 mt-2 italic px-1">Você pode encontrar este ID no painel da ElevenLabs em 'Voices'.</p>
