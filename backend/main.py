@@ -134,13 +134,21 @@ async def update_settings(new_settings: dict, user=Depends(get_current_user)):
     # Refresh Global State if needed or reload in endpoint
     return {"status": "success"}
 
-from memory_rag import LightMemory
+try:
+    from memory_rag import LightMemory
+    HAS_MEMORY = True
+except ImportError:
+    HAS_MEMORY = False
+    LightMemory = None
 
 # Add after load_settings
 memory = None
 
 def init_memory():
     global memory
+    if not HAS_MEMORY:
+        print("RAG memory not available (sentence-transformers not installed).")
+        return
     s = load_settings()
     api_key = s.get("openai_api_key")
     if api_key:
@@ -149,6 +157,7 @@ def init_memory():
            print("Memory initialized.")
         except Exception as e:
            print(f"Memory init failed: {e}")
+
 
 # Call init on startup
 init_memory()
