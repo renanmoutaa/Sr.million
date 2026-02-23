@@ -60,7 +60,6 @@ class AudioManager {
         this.init();
         if (!this.audioContext || !this.analyser) return 0;
 
-        // Ensure we stop mic before playing to avoid feedback loop or mixed analysis
         this.stopMic();
 
         if (this.audioContext.state === 'suspended') {
@@ -68,26 +67,35 @@ class AudioManager {
         }
 
         let buffer: AudioBuffer;
-        if (typeof audioData === 'string') {
-            if (audioData.startsWith('http')) {
-                const response = await fetch(audioData);
-                const arrayBuffer = await response.arrayBuffer();
-                buffer = await this.audioContext.decodeAudioData(arrayBuffer);
-            } else {
-                const binaryString = window.atob(audioData);
-                const len = binaryString.length;
-                const bytes = new Uint8Array(len);
-                for (let i = 0; i < len; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
+        try {
+            if (typeof audioData === 'string') {
+                if (audioData.startsWith('http')) {
+                    const response = await fetch(audioData);
+                    const arrayBuffer = await response.arrayBuffer();
+                    buffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                } else {
+                    // Fix Base64 decode for ElevenLabs API
+                    const binaryString = window.atob(audioData);
+                    const len = binaryString.length;
+                    const bytes = new Uint8Array(len);
+                    for (let i = 0; i < len; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    // decodeAudioData requires a fresh ArrayBuffer
+                    buffer = await this.audioContext.decodeAudioData(bytes.buffer.slice(0));
                 }
-                buffer = await this.audioContext.decodeAudioData(bytes.buffer as ArrayBuffer);
+            } else {
+                buffer = await this.audioContext.decodeAudioData(audioData);
             }
-        } else {
-            buffer = await this.audioContext.decodeAudioData(audioData);
+        } catch (e) {
+            console.error("Audio Decode Error:", e);
+            useChatStore.getState().setStatus('idle');
+            return 0;
         }
 
         if (this.source) {
             this.source.stop();
+            this.source.disconnect();
         }
 
         this.source = this.audioContext.createBufferSource();
@@ -98,15 +106,14 @@ class AudioManager {
         this.source.onended = () => {
             this.isPlaying = false;
             useChatStore.getState().setStatus('idle');
-            // Auto restart mic if needed? 
-            // For now UI handles logic
             if (this.onEnded) this.onEnded();
         };
 
-        this.source.start(0);
         this.isPlaying = true;
         useChatStore.getState().setStatus('speaking');
-        return buffer.duration; // ← real audio duration in seconds
+        this.source.start(0);
+
+        return buffer.duration;
     }
 
     // Poll for visualization data

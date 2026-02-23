@@ -67,12 +67,34 @@ export const UI = () => {
             const scheduleSteps = (totalMs: number) => {
                 timerRef.current.forEach(clearTimeout);
                 timerRef.current = [];
-                const introDelay = Math.min(totalMs * 0.05, 800);
-                const stepInterval = (totalMs - introDelay) / cards.length;
-                cards.forEach((_: unknown, i: number) => {
-                    const t = setTimeout(() => setVisibleCount(i + 1), introDelay + i * stepInterval);
+
+                // 1. Calculate how many total characters are in all cards combined
+                const totalChars = cards.reduce((acc: number, card: any) => acc + (card.content?.length || 0), 0) || 1;
+
+                // 2. We leave 15% (or max 1.5s) for the intro/highlight before showing the first card
+                const introDelay = Math.min(totalMs * 0.15, 1500);
+
+                // 3. We leave an 800ms buffer at the end so the final card doesn't disappear right as he stops talking
+                const timeForCards = Math.max(0, totalMs - introDelay - 800);
+
+                let accumulatedTime = introDelay;
+
+                cards.forEach((card: any, i: number) => {
+                    // Schedule this card to appear at accumulatedTime
+                    const t = setTimeout(() => setVisibleCount(i + 1), accumulatedTime);
                     timerRef.current.push(t);
+
+                    // Add the proportional time this card takes to "speak" based on its char count
+                    const charWeight = (card.content?.length || 1) / totalChars;
+                    const cardDurationMs = timeForCards * charWeight;
+                    accumulatedTime += cardDurationMs;
                 });
+
+                // Mark all cards as completed exactly when the audio finishes
+                const tEnd = setTimeout(() => {
+                    setVisibleCount(cards.length + 1);
+                }, totalMs);
+                timerRef.current.push(tEnd);
             };
 
             if (response.audio_content) {

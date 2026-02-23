@@ -16,7 +16,8 @@ const Login = () => {
         setError('');
 
         try {
-            const response = await axios.post('http://localhost:8000/login', { password });
+            const baseURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '/api');
+            const response = await axios.post(`${baseURL}/login`, { password });
             login(response.data.access_token);
             navigate('/admin');
         } catch (err: any) {

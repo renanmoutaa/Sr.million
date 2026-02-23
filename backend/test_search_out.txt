@@ -1,0 +1,25 @@
+--- 1. VERIFYING UPLOADED FILES IN SUPABASE ---
+Total chunks in database: 54
+
+Chunks per file:
+ - test_manual: 2 chunks
+ - POP 01 - Comercial - Aplicação Técnica.docx: 12 chunks
+ - POP 01 - Industria- Setup Empacotado.docx: 14 chunks
+ - POP 01 - Marketing - Etapas.docx: 14 chunks
+ - POP 03 - Comercial - Nutrição Animal Grão.docx: 12 chunks
+
+--- 2. VERIFYING AGENT SEARCH (RAG) ---
+Initializing SupabaseMemory with Native HTTP. URL: https://smiwcaaqggqkuqgatjam.supabase.co
+Supabase headers initialized.
+
+[Question] Qual a primeira etapa da Aplicação Técnica?
+   [Context Found]: ### Supabase Semantic Search Results: 1 – Prospecção: Abertura do processo a partir de prospecção ativa da Aplicação Técnica ou recebimento de lead vi...
+
+[Question] Como funciona a preparação do Setup Empacotado?
+   [Context Found]: ### Supabase Semantic Search Results: Encerramento FIM Início Conferência Preparação Verificação Produto Remover itens Instalar Itens Configuração Aju...
+
+[Question] O que envolve a Geração e Gestão de Leads no Marketing?
+   [Context Found]: ### Supabase Semantic Search Results: 2 – Geração e Gestão de Leads: São desenvolvidas ações para captação, qualificação e acompanhamento de leads, em...
+
+[Question] Qual o tipo de frete para Nutrição Animal Grão?
+   [Context Found]: ### Supabase Semantic Search Results: PROCEDIMENTO OPERACIONAL PADRÃO PROCEDIMENTO OPERACIONAL PADRÃO PROCEDIMENTO OPERACIONAL PADRÃO Revisão 00 Nº PO...

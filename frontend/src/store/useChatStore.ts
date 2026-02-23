@@ -51,7 +51,8 @@ export const useChatStore = create<ChatState>((set) => ({
   setDisplayCards: (cards) => set({ displayCards: cards }),
   fetchSettings: async () => {
     try {
-      const res = await axios.get('http://localhost:8000/settings_public');
+      const baseURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '/api');
+      const res = await axios.get(`${baseURL}/settings_public`);
       set({ settings: res.data });
     } catch (err) {
       console.warn("Could not fetch public settings, using defaults");

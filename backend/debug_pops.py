@@ -11,10 +11,10 @@ def main():
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_key = os.environ.get("SUPABASE_KEY")
     
-    if not all([api_key, supabase_url, supabase_key]):
-        print("Missing required environment variables.")
-        return
-        
+    import sys
+    sys.stdout = open('debug_utf8.txt', 'w', encoding='utf-8')
+    sys.stderr = sys.stdout
+
     memory = SupabaseMemory(
         openai_api_key=api_key,
         supabase_url=supabase_url,
@@ -24,10 +24,6 @@ def main():
     pops_dir = os.path.join(os.path.dirname(__file__), "data", "pops")
     docx_files = glob.glob(os.path.join(pops_dir, "*.docx"))
     
-    if not docx_files:
-        print(f"No .docx files found in {pops_dir}")
-        return
-        
     for file_path in docx_files:
         filename = os.path.basename(file_path)
         print(f"Loading {filename}...")
@@ -36,14 +32,23 @@ def main():
             doc = Document(file_path)
             full_text = []
             for para in doc.paragraphs:
-                full_text.append(para.text)
-                
-            text_content = "\n".join(full_text)
+                if para.text.strip():
+                    full_text.append(para.text)
             
-            # Use filename as source
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        if cell.text.strip():
+                            full_text.append(cell.text)
+                            
+            text_content = "\n".join(full_text)
+            print(f"File {filename} loaded. Size: {len(text_content)} chars")
+            
             memory.ingest(text_content, source=filename)
         except Exception as e:
             print(f"Error processing {filename}: {e}")
+            import traceback
+            traceback.print_exc()
 
 if __name__ == "__main__":
     main()

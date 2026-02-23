@@ -8,12 +8,23 @@ import json
 import base64
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Any
 from dotenv import load_dotenv
+
+import time
+
+# --- Simple Memory Session ---
+SESSION_TIMEOUT_SECONDS = 60
+last_interaction_time = 0
+chat_history = []
+# -----------------------------
+
 from openai import OpenAI
 from elevenlabs.client import ElevenLabs
 import jwt
 from datetime import datetime, timedelta
+
+load_dotenv(override=True)
 
 # Configuration Paths
 DATA_DIR = Path('data')
@@ -47,6 +58,8 @@ def load_settings():
         "JWT_SECRET":            "jwt_secret",
         "SYSTEM_PROMPT":         "system_prompt",
         "AVATAR_URL":            "avatar_url",
+        "SUPABASE_URL":          "supabase_url",
+        "SUPABASE_KEY":          "supabase_key",
     }
     for env_key, setting_key in env_map.items():
         value = os.environ.get(env_key)
@@ -135,11 +148,11 @@ async def update_settings(new_settings: dict, user=Depends(get_current_user)):
     return {"status": "success"}
 
 try:
-    from memory_rag import LightMemory
+    from supabase_rag import SupabaseMemory
     HAS_MEMORY = True
 except ImportError:
     HAS_MEMORY = False
-    LightMemory = None
+    SupabaseMemory = None
 
 # Add after load_settings
 memory = None
@@ -151,10 +164,16 @@ def init_memory():
         return
     s = load_settings()
     api_key = s.get("openai_api_key")
-    if api_key:
+    supabase_url = s.get("supabase_url")
+    supabase_key = s.get("supabase_key")
+    if api_key and supabase_url and supabase_key:
         try:
-           memory = LightMemory(openai_api_key=api_key)
-           print("Memory initialized.")
+           memory = SupabaseMemory(
+               openai_api_key=api_key,
+               supabase_url=supabase_url,
+               supabase_key=supabase_key
+           )
+           print("Supabase Memory initialized.")
         except Exception as e:
            print(f"Memory init failed: {e}")
 
@@ -210,33 +229,49 @@ async def chat(request: ChatRequest):
             prompt = f"{prompt}\n\nLembre-se destas informações do manual:\n{context}"
         base_prompt = prompt
 
-    # Add instruction to return structured visual cards
     structured_instruction = """
 
 ALÉM DA SUA RESPOSTA NORMAL, você DEVE retornar um JSON estruturado com o seguinte formato (e NADA MAIS fora do JSON):
 {
   "speech": "<texto fluido para ser falado em voz alta, SEM markdown>",
   "cards": [
-    {"type": "highlight", "content": "<frase principal de destaque>"},
-    {"type": "step", "content": "<etapa ou ação específica do processo>"},
-    {"type": "info", "content": "<informação complementar ou detalhe importante>"},
-    {"type": "warning", "content": "<alerta ou cuidado especial>"}
+    {"type": "highlight", "content": "<A ideia central>"},
+    {"type": "info", "content": "<Conceito 1>"},
+    {"type": "step", "content": "<Ação 1>"}
   ]
 }
-Regras para os cards:
-- Use "highlight" para a ideia central da resposta (1 por resposta)
-- Use "step" para cada etapa de um processo ou fluxo (1 card por etapa)
-- Use "info" para detalhes ou observações importantes
-- Use "warning" apenas se houver alertas
-- Mínimo 1 card, máximo 12 cards — se o processo tiver 8 etapas, crie 8 cards "step"
-- O campo "speech" deve ser EXATAMENTE o texto a ser narrado em voz alta — conciso, máximo 80 palavras
-- OBRIGATÓRIO: termine o campo "speech" com um gancho curto e natural, por exemplo: 'Ficou com dúvida em alguma etapa?' ou 'Quer detalhes sobre algum passo específico?' ou 'Posso aprofundar algum desses pontos para você.'
-- Cards devem ser concisos (máximo 12 palavras cada)"""
+Regras MÁXIMAS e INQUEBRÁVEIS para os cards:
+1. SINCRONIA TOTAL: TUDO que estiver nos cards DEVE obrigatoriamente ter sido dito (ou resumido) na sua chave "speech".
+2. PROIBIÇÃO: É estritamente proibido colocar em um card uma etapa ou informação que você não explicou em voz alta no "speech". 
+3. RESUMO: Os cards servem apenas como apoio visual para o que você está falando naquele momento.
+4. Use "highlight" para a abertura ou contexto da resposta.
+5. Use "step" APENAS se estiver explicando um Fluxo com ordem cronológica real (Ex: Como fazer Setup).
+6. Use "info" para listar características, conceitos, prazos ou regras soltas (Ex: O que é CIF? Quais as formas de pagamento?).
+7. O campo "speech" deve ser EXATAMENTE o texto a ser narrado, como se você fosse um professor amigável ensinando um colega (máximo 85 palavras).
+8. Os textos do campo "content" nos cards devem ser MUITO curtos e diretos (máximo 10 palavras)."""
+
+    # ======= SIMPLE MEMORY INJECTION =======
+    global last_interaction_time, chat_history
+    import time
+    current_time = time.time()
+    
+    if current_time - last_interaction_time > SESSION_TIMEOUT_SECONDS:
+        print("Session expired (>60s). Clearing memory.")
+        chat_history = []
+        
+    last_interaction_time = current_time
+    # =======================================
 
     messages = [
-        {"role": "system", "content": base_prompt + structured_instruction},
-        {"role": "user", "content": request.message}
+        {"role": "system", "content": base_prompt + structured_instruction}
     ]
+    
+    # Add history
+    for msg in chat_history:
+        messages.append(msg)
+        
+    # Add current message
+    messages.append({"role": "user", "content": request.message})
 
     try:
         client = OpenAI(api_key=api_key)
@@ -263,6 +298,12 @@ Regras para os cards:
             display_cards = [{"type": "highlight", "content": raw[:120]}]
 
         answer = speech_text
+        
+        # Save to memory (Cap at 10 messages / 5 pairs to avoid token bloat)
+        chat_history.append({"role": "user", "content": request.message})
+        chat_history.append({"role": "assistant", "content": answer})
+        if len(chat_history) > 10:
+            chat_history = chat_history[-10:]
 
         audio_base64 = None
         if eleven_key:
