@@ -185,8 +185,11 @@ def init_memory():
            print(f"Memory init failed: {e}")
 
 
-# Call init on startup
-init_memory()
+# Call init on startup — wrapped so a missing env var never crashes the import
+try:
+    init_memory()
+except Exception as _e:
+    print(f"[Startup] init_memory failed (non-fatal): {_e}")
 
 # Models
 class IngestRequest(BaseModel):
