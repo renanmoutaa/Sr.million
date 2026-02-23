@@ -1,18 +1,26 @@
 """
-Vercel serverless entry point for the FastAPI backend.
-Vercel routes /api/* here with the full path preserved (e.g. /api/chat).
-We mount the backend app at /api so /api/chat → backend's /chat.
+Vercel serverless entry point.
+Uses lazy imports to avoid crashing Vercel on module load.
 """
 import sys
 import os
 
-# Add backend folder to Python path
+# Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
-from fastapi import FastAPI
-from main import app as backend_app
+# Guard all imports so any missing dep shows a useful 500 message instead of a silent crash
+try:
+    from main import app
+except Exception as _boot_err:
+    # If main.py fails to import, create a minimal emergency app that reports the error
+    from fastapi import FastAPI
+    app = FastAPI()
 
-# Top-level Vercel ASGI app — mounts backend under /api prefix
-# Vercel sends us /api/chat → backend sees /chat (prefix is stripped by mount)
-app = FastAPI()
-app.mount("/api", backend_app)
+    @app.get("/health")
+    def health():
+        return {"status": "boot_error", "error": str(_boot_err)}
+
+    @app.post("/chat")
+    def chat_err():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail=f"Backend failed to start: {_boot_err}")
