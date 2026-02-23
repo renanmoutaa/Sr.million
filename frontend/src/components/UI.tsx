@@ -53,11 +53,13 @@ export const UI = () => {
 
     // Mic start/stop side effect
     useEffect(() => {
+        const prevStatus = lastStatus.current as string;
         if (status === 'listening') {
             import('../utils/AudioManager').then(({ audioManager }) => audioManager.startMic());
-        } else if (lastStatus.current === 'listening' && status !== 'listening') {
+        } else if (prevStatus === 'listening') {
             import('../utils/AudioManager').then(({ audioManager }) => audioManager.stopMic());
         }
+        lastStatus.current = status;
     }, [status]);
 
     const processText = async (text: string) => {
