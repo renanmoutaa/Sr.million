@@ -28,7 +28,11 @@ load_dotenv(override=True)
 
 # Configuration Paths
 DATA_DIR = Path('data')
-DATA_DIR.mkdir(exist_ok=True)
+try:
+    DATA_DIR.mkdir(exist_ok=True)
+except OSError:
+    pass  # In Vercel serverless, filesystem is read-only. We rely on env vars.
+
 SETTINGS_FILE = DATA_DIR / 'settings.json'
 SECRET_KEY = "sr-million-secret-key" # In production, use env variable
 ALGORITHM = "HS256"
@@ -69,8 +73,11 @@ def load_settings():
 
 
 def save_settings(settings):
-    with open(SETTINGS_FILE, 'w') as f:
-        json.dump(settings, f, indent=2)
+    try:
+        with open(SETTINGS_FILE, 'w') as f:
+            json.dump(settings, f, indent=2)
+    except OSError:
+        pass  # In Vercel serverless, filesystem is read-only. Settings are managed via env vars.
 
 # Global State
 settings = load_settings()
