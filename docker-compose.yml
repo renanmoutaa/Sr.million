@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  # ─── Python FastAPI Backend ─────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: srmillion_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE_ID:-Daniel}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - JWT_SECRET=${JWT_SECRET:-sr-million-secret-key}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SYSTEM_PROMPT=${SYSTEM_PROMPT}
+    volumes:
+      - backend_data:/app/data
+    ports:
+      - "8000:8000"
+    networks:
+      - srmillion_net
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/settings_public')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ─── React Frontend + Nginx ──────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: srmillion_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - srmillion_net
+
+volumes:
+  backend_data:
+
+
+networks:
+  srmillion_net:
+    driver: bridge
