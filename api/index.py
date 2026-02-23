@@ -1,26 +1,25 @@
 """
 Vercel serverless entry point.
-Uses lazy imports to avoid crashing Vercel on module load.
+@vercel/python runtime sends the FULL path (e.g. /api/chat) to this file.
+We mount the backend app under /api so FastAPI strips that prefix and
+routes /api/chat → backend's /chat endpoint.
 """
 import sys
 import os
 
-# Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
-# Guard all imports so any missing dep shows a useful 500 message instead of a silent crash
 try:
-    from main import app
-except Exception as _boot_err:
-    # If main.py fails to import, create a minimal emergency app that reports the error
     from fastapi import FastAPI
+    from main import app as backend_app
+
+    app = FastAPI()
+    app.mount("/api", backend_app)
+
+except Exception as _boot_err:
+    from fastapi import FastAPI, HTTPException
     app = FastAPI()
 
-    @app.get("/health")
-    def health():
-        return {"status": "boot_error", "error": str(_boot_err)}
-
-    @app.post("/chat")
-    def chat_err():
-        from fastapi import HTTPException
-        raise HTTPException(status_code=503, detail=f"Backend failed to start: {_boot_err}")
+    @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+    def catch_all(path: str):
+        raise HTTPException(status_code=503, detail=f"Boot error: {_boot_err}")
