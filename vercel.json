@@ -1,13 +1,15 @@
 {
-    "buildCommand": "cd frontend && npm install && npm run build",
-    "outputDirectory": "frontend/dist",
-    "installCommand": "cd frontend && npm install",
-    "framework": null,
-    "functions": {
-        "api/index.py": {
-            "runtime": "vercel-python@0.7.4"
+    "version": 2,
+    "builds": [
+        {
+            "src": "frontend/dist/**",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "api/index.py",
+            "use": "@vercel/python"
         }
-    },
+    ],
     "routes": [
         {
             "src": "/api/(.*)",
@@ -15,7 +17,9 @@
         },
         {
             "src": "/(.*)",
-            "dest": "/index.html"
+            "dest": "/frontend/dist/$1"
         }
-    ]
+    ],
+    "buildCommand": "cd frontend && npm install && npm run build",
+    "outputDirectory": "frontend/dist"
 }
